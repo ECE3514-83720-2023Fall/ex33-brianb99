@@ -1,0 +1,46 @@
+name: C++ Autograding
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Install C++ compiler and CMake
+      run: |
+        sudo apt update
+        sudo apt install -y g++ cmake
+
+    - name: Build and run student tests
+      run: |
+        cmake -B build .
+        cmake --build build
+        ./build/unit_tests
+
+    - name: Check for instructor_tests.cpp
+      id: check_tests
+      run: |
+        if [ -f .github/instructor_tests.cpp ]; then
+          echo "instructor_tests.cpp exists, running tests."
+          echo "::set-output name=INSTRUCTOR_TESTS_EXISTS::true"
+        else
+          echo "instructor_tests.cpp does not exist, skipping tests."
+          echo "::set-output name=INSTRUCTOR_TESTS_EXISTS::false"
+        fi
+      shell: bash
+
+    - name: Build and run instructor tests
+      if: steps.check_tests.outputs.INSTRUCTOR_TESTS_EXISTS == 'true'
+      run: |
+        ./build/instructor_tests
