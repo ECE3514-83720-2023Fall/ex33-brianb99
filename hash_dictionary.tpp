@@ -113,46 +113,64 @@ template <typename KeyType, typename ValueType, typename HashType>
 void HashDictionary<KeyType, ValueType, HashType>::add(const KeyType &key,
                                                        const ValueType &value)
 {
-    // TODO implement the add method...
-    
-    // 1. hash the key
+    // hash the key
     std::size_t index = m_hash(key) % m_capacity;
-    
-    
-    // 2. do linear probing
+
+    // do linear probing
     std::size_t numprobes = 0;
     while (m_data[index].filled && (numprobes < m_capacity)) {
         if (m_data[index].key == key) {
-            break;
+            throw std::logic_error("Duplicate key in HashDictionary::add");
         }
+
         index = (index + 1) % m_capacity;
         numprobes += 1;
     }
-
-    
-    // 3. Check to see if linear probing has failed
     if (numprobes == m_capacity) {
         throw std::logic_error("Too many probes in HashDictionary::add");
     }
-    // 4. insert the key-value pair
 
-    KeyValueType entry = KeyValueType(key, value);
-    entry.filled = true;
+    // test if we need to reallocate
+    if (m_load_factor * m_capacity < m_size) {
 
-    m_data[index] = entry;
+        // find next prime > 2*m_capacity
+        // there are better ways to do this
+        std::size_t newcap = 2 * m_capacity;
+        while (!isprime(newcap)) {
+            newcap += 1;
+        }
 
-    m_size++;
-   
-    // 5. test if we need to reallocate¡¡and reallocate if needed
-    KeyValueType* temp_data = m_data; //make copy of old data
-    m_capacity = m_capacity * 2; //double capacity
-    KeyValueType* m_data = new KeyValueType[m_capacity]; //make new array of double capacity
+        // allocate
+        KeyValueType* temp = new KeyValueType[newcap];
 
-    for (int i = 0; i < m_capacity / 2; i++) { //copy all data from temp_data to m_data of new capacity
-        m_data[i] = temp_data[i];
+        // rehash all entries
+        for (std::size_t i = 0; i < m_capacity; ++i) {
+            if (m_data[i].filled) {
+                // hash into new array
+                std::size_t newindex = m_hash(m_data[i].key) % newcap;
+                // do linear probing
+                std::size_t numprobes = 0;
+                while (temp[newindex].filled && (numprobes < newcap)) {
+                    newindex = (newindex + 1) % newcap;
+                    numprobes += 1;
+                }
+                temp[newindex].filled = true;
+                temp[newindex].key = m_data[i].key;
+                temp[newindex].value = m_data[i].value;
+            }
+        }
+
+        // cleanup
+        delete[] m_data;
+        m_data = temp;
+        m_capacity = newcap;
     }
 
-    delete[] temp_data; //clear old data
+    // insert the key-value pair
+    m_data[index].filled = true;
+    m_data[index].key = key;
+    m_data[index].value = value;
+    m_size += 1;
       
 
 }
