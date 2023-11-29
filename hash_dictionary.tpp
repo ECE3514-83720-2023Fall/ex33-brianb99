@@ -116,16 +116,43 @@ void HashDictionary<KeyType, ValueType, HashType>::add(const KeyType &key,
     // TODO implement the add method...
     
     // 1. hash the key
+    std::size_t index = m_hash(key) % m_capacity;
     
     
     // 2. do linear probing
+    std::size_t numprobes = 0;
+    while (m_data[index].filled && (numprobes < m_capacity)) {
+        if (m_data[index].key == key) {
+            break;
+        }
+        index = (index + 1) % m_capacity;
+        numprobes += 1;
+    }
+
     
     // 3. Check to see if linear probing has failed
-    
+    if (numprobes == m_capacity) {
+        throw std::logic_error("Too many probes in HashDictionary::add");
+    }
     // 4. insert the key-value pair
+
+    KeyValueType entry = KeyValueType(key, value);
+    entry.filled = true;
+
+    m_data[index] = entry;
+
+    m_size++;
    
     // 5. test if we need to reallocate¡¡and reallocate if needed
-    
+    KeyValueType* temp_data = m_data; //make copy of old data
+    m_capacity = m_capacity * 2; //double capacity
+    KeyValueType* m_data = new KeyValueType[m_capacity]; //make new array of double capacity
+
+    for (int i = 0; i < m_capacity / 2; i++) { //copy all data from temp_data to m_data of new capacity
+        m_data[i] = temp_data[i];
+    }
+
+    delete[] temp_data; //clear old data
       
 
 }
@@ -134,6 +161,31 @@ template <typename KeyType, typename ValueType, typename HashType>
 void HashDictionary<KeyType, ValueType, HashType>::remove(const KeyType &key) {
     
     //TODO implement the remove method...
+    if (!contains(key)) {
+        throw std::logic_error("Nonexistant key in HashDictionary::remove");
+    }
+
+    // do linear probing
+    std::size_t index = m_hash(key) % m_capacity;
+    std::size_t numprobes = 0;
+    while (m_data[index].filled && (numprobes < m_capacity)) {
+        if (m_data[index].key == key) {
+            break;
+        }
+        index = (index + 1) % m_capacity;
+            numprobes += 1;
+    }
+    if (numprobes == m_capacity) {
+        throw std::logic_error("Too many probes in HashDictionary::remove");
+    }
+    //we should now have found the index to be removed.
+
+    m_data[index].filled = false;
+
+    m_size--;
+
+
+
 }
 
 template <typename KeyType, typename ValueType, typename HashType>
